@@ -1,19 +1,21 @@
 #include <WinSock2.h>
 
 #include <vector>
+#include <fstream>
 
 class Logger
 {
 private:
-    SOCKET server;
-    int receiveBufferSize;
-    std::vector<char> receiveBuffer;
+    SOCKET m_server;
+    int m_receiveBufferSize;
+    std::vector<char> m_receiveBuffer;
+    std::ofstream m_filestream;
     
 public:
-    Logger(int port);
+    Logger(int port, const char* filename);
     ~Logger();
 
     void Process();
-    static void Log(const char *message);
+    void Log(const char *message);
 };
 
