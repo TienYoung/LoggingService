@@ -2,7 +2,11 @@
 
 int main(int argc, char* argv[])
 {
-    Log("Logger");
+    Logger log(50000);
+    while (true)
+    {
+        log.Process();
+    }
 
     return 0;
 }
