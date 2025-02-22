@@ -1,4 +1,8 @@
-#include <WinSock2.h>
+#ifdef _WIN32
+    typedef SOCKET socket_t;
+#else
+    typedef int socket_t;
+#endif
 
 #include <vector>
 #include <fstream>
@@ -6,7 +10,7 @@
 class Logger
 {
 private:
-    SOCKET m_server;
+    socket_t m_server;
     int m_receiveBufferSize;
     std::vector<char> m_receiveBuffer;
     std::ofstream m_filestream;

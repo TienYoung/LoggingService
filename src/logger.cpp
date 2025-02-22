@@ -6,41 +6,63 @@
 #include <cassert>
 #include <exception>
 
-#define CHECK_WSA(call)                                                                               \
-    do                                                                                                \
-    {                                                                                                 \
-        int errorCode = call;                                                                         \
-        if (errorCode != 0)                                                                           \
-        {                                                                                             \
-            throw std::system_error(errorCode, std::system_category(), "Failed to init Winsock DLL"); \
-        }                                                                                             \
+#ifdef _WIN32
+    #include <WinSock2.h>
+#else
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #include <errno.h>
+#endif
+
+#ifdef _WIN32
+    #define CHECK_WSA(call) do {                                                                     \
+        int errorCode = call;                                                                        \
+        if (errorCode != 0)                                                                          \
+        {                                                                                            \
+            throw std::system_error(errorCode, std::system_category(), "Failed to init Winsock DLL");\
+        }                                                                                            \
     } while (false)
 
-#define CHECK_SOCKET(call)                                                                        \
-    do                                                                                            \
-    {                                                                                             \
-        if (call == INVALID_SOCKET)                                                               \
-        {                                                                                         \
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Invalid socket"); \
-        }                                                                                         \
+    #define CHECK_SOCKET(call) do {                                                              \
+        if (call == INVALID_SOCKET)                                                              \
+        {                                                                                        \
+            throw std::system_error(WSAGetLastError(), std::system_category(), "Invalid socket");\
+        }                                                                                        \
     } while (false)
 
-#define CHECK_SOCK_ERROR(call)                                                                  \
-    do                                                                                          \
-    {                                                                                           \
-        if (call == SOCKET_ERROR)                                                               \
-        {                                                                                       \
-            throw std::system_error(WSAGetLastError(), std::system_category(), "Socket error"); \
-        }                                                                                       \
+    #define CHECK_SOCK_ERROR(call) do {                                                        \
+        if (call == SOCKET_ERROR)                                                              \
+        {                                                                                      \
+            throw std::system_error(WSAGetLastError(), std::system_category(), "Socket error");\
+        }                                                                                      \
     } while (false)
+#else
+    #define CHECK_SOCKET(call) do {                                                  \
+        if (call == -1)                                                              \
+        {                                                                            \
+            throw std::system_error(errno, std::system_category(), "Invalid socket");\
+        }                                                                            \
+    } while (false)
+
+    #define CHECK_SOCK_ERROR(call) do {                                            \
+        if (call == -1)                                                            \
+        {                                                                          \
+            throw std::system_error(errno, std::system_category(), "Socket error");\
+        }                                                                          \
+    } while (false)
+#endif
+
 
 Logger::Logger(int port, const char *filename)
     : m_server(0), m_receiveBufferSize(0), m_receiveBuffer(0), m_filestream(filename, std::ios::app)
 {
+#ifdef _WIN32
     WSAData wsadata = {0};
     CHECK_WSA(WSAStartup(MAKEWORD(2, 2), &wsadata)); // initialize winsock dll
-
-    m_server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // create a ipv4 tcp socket
+#endif
+    m_server = socket(AF_INET, SOCK_STREAM, 0); // create a ipv4 tcp socket
     CHECK_SOCKET(m_server);
 
     sockaddr_in localAddrss = {0};
@@ -50,23 +72,27 @@ Logger::Logger(int port, const char *filename)
     CHECK_SOCK_ERROR(bind(m_server, reinterpret_cast<sockaddr *>(&localAddrss), sizeof(localAddrss))); // bind socket to the local host
     CHECK_SOCK_ERROR(listen(m_server, SOMAXCONN));                                                     // listen to this socket
 
-    int optlen = sizeof(int);
+    socklen_t optlen = sizeof(int);
     CHECK_SOCK_ERROR(getsockopt(m_server, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char *>(&m_receiveBufferSize), &optlen)); // get the socket buffer size
     m_receiveBuffer = std::vector<char>(m_receiveBufferSize, 0);                                                            // new a receive buffer
 }
 
 Logger::~Logger()
 {
+#ifdef _WIN32
     closesocket(m_server);
     WSACleanup();
+#else
+    close(m_server);
+#endif
     m_filestream.close();
 }
 
 void Logger::Process()
 {
     sockaddr_in clientAddress = {0};
-    int clientAddrLen = sizeof(sockaddr_in);
-    SOCKET client = accept(m_server, reinterpret_cast<sockaddr *>(&clientAddress), &clientAddrLen); // waiting for a client connection
+    socklen_t clientAddrLen = sizeof(sockaddr_in);
+    socket_t client = accept(m_server, reinterpret_cast<sockaddr *>(&clientAddress), &clientAddrLen); // waiting for a client connection
     CHECK_SOCKET(client);
 
     int receivedSize = recv(client, m_receiveBuffer.data(), m_receiveBufferSize, 0);
