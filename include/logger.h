@@ -1,11 +1,13 @@
 #include <WinSock2.h>
 
+#include <vector>
+
 class Logger
 {
 private:
     SOCKET server;
-    char* receiveBuffer;
     int receiveBufferSize;
+    std::vector<char> receiveBuffer;
     
 public:
     Logger(int port);

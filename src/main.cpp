@@ -1,12 +1,22 @@
 #include "logger.h"
 
+#include <iostream>
+
 int main(int argc, char* argv[])
 {
-    Logger log(50000);
-    while (true)
+    try
     {
-        log.Process();
+        Logger log(50000);
+        while (true)
+        {
+            log.Process();
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }
