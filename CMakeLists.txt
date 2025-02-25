@@ -12,3 +12,5 @@ add_executable(LoggingService ${SOURCES})
 if(WIN32)
     target_link_libraries(LoggingService WS2_32)
 endif()
+
+configure_file(${CMAKE_SOURCE_DIR}/config.toml ${CMAKE_BINARY_DIR}/config.toml COPYONLY)
