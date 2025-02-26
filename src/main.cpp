@@ -1,3 +1,16 @@
+/*
+* FILE : main.cpp
+* PROJECT : SENG2040 - ASSIGNMENT 3
+* PROGRAMMER : Tian Yang, 8952896
+*              Yu-Hsuan, Lee, 8904099
+* FIRST VERSION : 2025-02-13
+* DESCRIPTION :
+*   This file contains the entry point for the logging service application. 
+*   It loads configuration settings from a TOML file, parses command-line arguments, 
+*   and initializes the logging service. The program runs indefinitely, processing log 
+*   data based on the configured parameters such as port number, log file path, and rate limit.
+*/
+
 #include "logger.h"
 
 #include <iostream>
@@ -86,7 +99,7 @@ int main(int argc, char* argv[])
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-    catch(const toml::syntax_error& e)
+    catch(const toml::syntax_error& e) // Config errors
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;

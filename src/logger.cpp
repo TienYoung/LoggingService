@@ -1,3 +1,16 @@
+/*
+* FILE : logger.cpp
+* PROJECT : SENG2040 - ASSIGNMENT 3
+* PROGRAMMER : Tian Yang, 8952896
+*              Yu-Hsuan, Lee, 8904099
+* FIRST VERSION : 2025-02-13
+* DESCRIPTION :
+*   This file implements the `Logger` class, which is responsible for receiving 
+*   log messages over a TCP socket, processing them according to a specified 
+*   format, and writing them to a log file. It supports configurable logging 
+*   fields, rate limiting, and structured logging using JSON.
+*/
+
 #include "logger.h"
 
 #include <iostream>
