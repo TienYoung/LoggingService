@@ -128,6 +128,7 @@ void Logger::Process()
         try
         {
             const json data = json::parse(m_receiveBuffer.data());
+            std::fill(m_receiveBuffer.begin(), m_receiveBuffer.end(), '\0');
             if(m_supportPriority == true)
             {
                 priority = data["priority"];
@@ -192,12 +193,17 @@ void Logger::Process()
             std::cerr << "Not a valid log format." << std::endl;
             std::cerr << e.what() << std::endl;
         }
+        // catch(const json::exception& e)
+        // {
+        //     std::cerr << e.what() << std::endl;
+        // }
 
     #ifdef _WIN32
         closesocket(client);
     #else
         close(client);
     #endif
+        std::fill(m_receiveBuffer.begin(), m_receiveBuffer.end(), '\0');
         return;
     }
 }
