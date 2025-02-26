@@ -1,13 +1,13 @@
 [Service]
-port_number = 500000
+port_number = 50000
 log_file = "log.lnav"
 rate_limite = 100
 
 [Format]
-priority = true
-timestamp = true
-hostname = true
-application = true
-pid = true
-msgid = true
-message = true
+priority = true     #int
+timestamp = true    #string
+hostname = true     #string
+application = true  #string
+pid = true          #int
+msgid = true        #string
+message = true      #string

@@ -13,4 +13,8 @@ if(WIN32)
     target_link_libraries(LoggingService WS2_32)
 endif()
 
-configure_file(${CMAKE_SOURCE_DIR}/config.toml ${CMAKE_BINARY_DIR}/config.toml COPYONLY)
+add_custom_command(TARGET LoggingService POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/config.toml
+    $<TARGET_FILE_DIR:LoggingService>/config.toml
+)
