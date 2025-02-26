@@ -8,18 +8,29 @@
 #include <vector>
 #include <fstream>
 
+#include "toml.hpp"
+
 class Logger
 {
 public:
-    Logger(int port, const char *filename);
+    Logger(const toml::value& service, const toml::value& format);
     ~Logger();
 
     void Process();
-    void Log(const char *message);
+    void Log(int priority, const char* timestamp, const char* hostname, const char* application, 
+        int pid, const char* msgid, const char *message);
 
 private:
     socket_t m_server;
     int m_receiveBufferSize;
     std::vector<char> m_receiveBuffer;
     std::ofstream m_filestream;
+
+    bool m_supportPriority;
+    bool m_supportTimestamp;
+    bool m_supportHostname;
+    bool m_supportApplication;
+    bool m_supportPid;
+    bool m_supportMsgid;
+    bool m_supportMessage;
 };

@@ -3,7 +3,7 @@ port_number = 500000
 log_file = "log.lnav"
 rate_limite = 100
 
-[Logging]
+[Format]
 priority = true
 timestamp = true
 hostname = true

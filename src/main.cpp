@@ -4,8 +4,6 @@
 #include <cstring>
 #include <charconv>
 
-#include "toml.hpp"
-
 enum OPTION {PORT, LOG_PATH, RATE_LIMITE, NUM} ;
 const char* g_options[] = {"-p", "-l", "-r"};
 
@@ -20,11 +18,16 @@ int main(int argc, char* argv[])
     {
         config= toml::parse("config.toml");
 
-        port = config["port_number"].as_integer();
-        filename = config["log_file"].as_string();
-        rate_limite = config["rate_limite"].as_integer();
+        port = config["Service"]["port_number"].as_integer();
+        filename = config["Service"]["log_file"].as_string();
+        rate_limite = config["Service"]["rate_limite"].as_integer();
     }
     catch(const toml::file_io_error& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+    catch(const toml::type_error& e)
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
@@ -46,10 +49,12 @@ int main(int argc, char* argv[])
                 std::cerr << "This is not a valid port number!" << std::endl;
                 return EXIT_FAILURE;
             }
+            config["Service"]["port_number"].as_integer() = port;
         }
         else if(strcmp(argv[i], g_options[LOG_PATH]) == 0)
         {
             filename = argv[i+1];
+            config["Service"]["log_file"].as_string() = filename;
         }
         else if(strcmp(argv[i], g_options[RATE_LIMITE]) == 0)
         {
@@ -59,18 +64,29 @@ int main(int argc, char* argv[])
                 std::cerr << "This is not a valid rate limite!" << std::endl;
                 return EXIT_FAILURE;
             }
+            config["Service"]["rate_limite"].as_integer() = rate_limite;
         }
     }
 
+    // Print the service config.
+    std::cout << "Logging Service started." << std::endl;
+    std::cout << config << std::endl;
+
+    // Launch loggging service.
     try
     {
-        Logger log(port, filename.c_str());
+        Logger log(config["Service"], config["Format"]);
         while (true)
         {
             log.Process();
         }
     }
     catch(const std::system_error& e)
+    {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+    catch(const toml::syntax_error& e)
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;

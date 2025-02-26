@@ -16,6 +16,9 @@
     #include <errno.h>
 #endif
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 #ifdef _WIN32
     #define CHECK_WSA(call) do {                                                                     \
         int errorCode = call;                                                                        \
@@ -55,8 +58,8 @@
 #endif
 
 
-Logger::Logger(int port, const char *filename)
-    : m_server(0), m_receiveBufferSize(0), m_receiveBuffer(0), m_filestream(filename, std::ios::app)
+Logger::Logger(const toml::value& service, const toml::value& format)
+    : m_server(0), m_receiveBufferSize(0), m_receiveBuffer(0), m_filestream(service.at("log_file").as_string(), std::ios::app)
 {
 #ifdef _WIN32
     WSAData wsadata = {0};
@@ -68,13 +71,21 @@ Logger::Logger(int port, const char *filename)
     sockaddr_in localAddrss = {0};
     localAddrss.sin_family = AF_INET;                                                                  // ipv4
     localAddrss.sin_addr.s_addr = inet_addr("127.0.0.1");                                              // local host
-    localAddrss.sin_port = htons(port);                                                                // user specified port number
+    localAddrss.sin_port = htons(service.at("port_number").as_integer());                               // user specified port number
     CHECK_SOCK_ERROR(bind(m_server, reinterpret_cast<sockaddr *>(&localAddrss), sizeof(localAddrss))); // bind socket to the local host
     CHECK_SOCK_ERROR(listen(m_server, SOMAXCONN));                                                     // listen to this socket
 
     socklen_t optlen = sizeof(int);
     CHECK_SOCK_ERROR(getsockopt(m_server, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char *>(&m_receiveBufferSize), &optlen)); // get the socket buffer size
     m_receiveBuffer = std::vector<char>(m_receiveBufferSize, 0);                                                            // new a receive buffer
+
+    m_supportPriority = format.at("priority").as_boolean();
+    m_supportTimestamp = format.at("timestamp").as_boolean();
+    m_supportHostname = format.at("hostname").as_boolean();
+    m_supportApplication = format.at("application").as_boolean();
+    m_supportPid = format.at("pid").as_boolean();
+    m_supportMsgid = format.at("msgid").as_boolean();
+    m_supportMessage = format.at("message").as_boolean();
 }
 
 Logger::~Logger()
@@ -103,12 +114,53 @@ void Logger::Process()
     }
     else
     {
+        int priority = 0;
+        std::string timestamp = std::format("{0:%F}T{0:%TZ}", std::chrono::system_clock::now());
+        std::string hostname = "unknown";
+        std::string application = "unknown";
+        int pid = -1;
+        std::string msgid = "-";
+        std::string message = "";
 
-        Log(m_receiveBuffer.data());
+        try
+        {
+            const json data = json::parse(m_receiveBuffer.data());
+            if(m_supportPriority == true)
+            {
+                priority = data["priority"];
+            }
+            if(m_supportTimestamp == true)
+            {
+                timestamp = data["timestamp"];
+            }
+            if(m_supportHostname == true)
+            {
+                hostname = data["hostname"];
+            }
+            if(m_supportApplication == true)
+            {
+                application = data["application"];
+            }
+            if(m_supportPid == true)
+            {
+                pid = data["pid"];
+            }
+            if(m_supportMsgid == true)
+            {
+                msgid = data["msgid"];
+            }
+
+            Log(priority, timestamp.c_str(), hostname.c_str(), application.c_str(), pid, msgid.c_str(), message.c_str());
+        }
+        catch(const json::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
     }
 }
 
-void Logger::Log(const char *message)
+void Logger::Log(int priority, const char* timestamp, const char* hostname, const char* application, 
+    int pid, const char* msgid, const char *message)
 {
-    m_filestream << std::format("{0:%F}T{0:%TZ}: {1}", std::chrono::system_clock::now(), message) << std::endl;
+    m_filestream << std::format("<{0}>1 {1} {2} {3} {4} {5} {6}", priority, timestamp, hostname, application, pid, msgid, message) << std::endl;
 }
