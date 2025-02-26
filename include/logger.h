@@ -7,6 +7,8 @@
 
 #include <vector>
 #include <fstream>
+#include <unordered_map>
+#include <chrono>
 
 #include "toml.hpp"
 
@@ -25,6 +27,9 @@ private:
     int m_receiveBufferSize;
     std::vector<char> m_receiveBuffer;
     std::ofstream m_filestream;
+    std::unordered_map<std::string, std::chrono::time_point<
+        std::chrono::system_clock, std::chrono::milliseconds>> m_lastConnectionTime;
+    std::chrono::milliseconds m_minimumTimeInterval;
 
     bool m_supportPriority;
     bool m_supportTimestamp;

@@ -4,14 +4,14 @@
 #include <cstring>
 #include <charconv>
 
-enum OPTION {PORT, LOG_PATH, RATE_LIMITE, NUM} ;
+enum OPTION {PORT, LOG_PATH, RATE_LIMIT, NUM} ;
 const char* g_options[] = {"-p", "-l", "-r"};
 
 int main(int argc, char* argv[])
 {
     int port = 50000;
     std::string filename = "log.lnav";
-    int rate_limite = 100;
+    int rate_limit = 100;
     toml::value config;
     // Load config file.
     try
@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 
         port = config["Service"]["port_number"].as_integer();
         filename = config["Service"]["log_file"].as_string();
-        rate_limite = config["Service"]["rate_limite"].as_integer();
+        rate_limit = config["Service"]["rate_limit"].as_integer();
     }
     catch(const toml::file_io_error& e)
     {
@@ -56,15 +56,15 @@ int main(int argc, char* argv[])
             filename = argv[i+1];
             config["Service"]["log_file"].as_string() = filename;
         }
-        else if(strcmp(argv[i], g_options[RATE_LIMITE]) == 0)
+        else if(strcmp(argv[i], g_options[RATE_LIMIT]) == 0)
         {
-            auto [ptr, ec] = std::from_chars(argv[i+1], argv[i+1] + strlen(argv[i+1]), rate_limite); // Convert str to int
+            auto [ptr, ec] = std::from_chars(argv[i+1], argv[i+1] + strlen(argv[i+1]), rate_limit); // Convert str to int
             if (ec != std::errc())
             {
                 std::cerr << "This is not a valid rate limite!" << std::endl;
                 return EXIT_FAILURE;
             }
-            config["Service"]["rate_limite"].as_integer() = rate_limite;
+            config["Service"]["rate_limit"].as_integer() = rate_limit;
         }
     }
 

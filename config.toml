@@ -1,7 +1,7 @@
 [Service]
 port_number = 50000
 log_file = "log.lnav"
-rate_limite = 100
+rate_limit = 100
 
 [Format]
 priority = true     #int

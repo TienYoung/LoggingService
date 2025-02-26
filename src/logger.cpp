@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <format>
-#include <chrono>
 #include <cassert>
 #include <exception>
 
@@ -72,13 +71,14 @@ Logger::Logger(const toml::value& service, const toml::value& format)
     localAddrss.sin_family = AF_INET;                                                                  // ipv4
     localAddrss.sin_addr.s_addr = inet_addr("127.0.0.1");                                              // local host
     localAddrss.sin_port = htons(service.at("port_number").as_integer());                              // user specified port number
-    int p = service.at("port_number").as_integer();
     CHECK_SOCK_ERROR(bind(m_server, reinterpret_cast<sockaddr *>(&localAddrss), sizeof(localAddrss))); // bind socket to the local host
     CHECK_SOCK_ERROR(listen(m_server, SOMAXCONN));                                                     // listen to this socket
 
     socklen_t optlen = sizeof(int);
     CHECK_SOCK_ERROR(getsockopt(m_server, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<char *>(&m_receiveBufferSize), &optlen)); // get the socket buffer size
     m_receiveBuffer = std::vector<char>(m_receiveBufferSize, 0);                                                            // new a receive buffer
+
+    m_minimumTimeInterval = std::chrono::milliseconds(1000 / service.at("rate_limit").as_integer());
 
     m_supportPriority = format.at("priority").as_boolean();
     m_supportTimestamp = format.at("timestamp").as_boolean();
@@ -149,6 +149,24 @@ void Logger::Process()
             if(m_supportMsgid == true)
             {
                 msgid = data["msgid"];
+            }
+
+            auto currentTimePoint = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+            auto it = m_lastConnectionTime.find(hostname + application);
+            if(it == m_lastConnectionTime.end()) // If is the first time connection
+            {
+               m_lastConnectionTime.emplace(hostname + application, currentTimePoint);
+            }
+            else
+            {
+                auto deltaTime = currentTimePoint - it->second;
+                it->second = currentTimePoint;
+                if(deltaTime < m_minimumTimeInterval)
+                {
+                    // Refuse.
+                    std::cout << std::format("Refuse {} {}, which is too noisy.", hostname, application) << std::endl;
+                    return;
+                }
             }
 
             Log(priority, timestamp.c_str(), hostname.c_str(), application.c_str(), pid, msgid.c_str(), message.c_str());
