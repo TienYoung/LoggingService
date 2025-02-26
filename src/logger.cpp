@@ -69,7 +69,7 @@ Logger::Logger(const toml::value& service, const toml::value& format)
 
     sockaddr_in localAddrss = {0};
     localAddrss.sin_family = AF_INET;                                                                  // ipv4
-    localAddrss.sin_addr.s_addr = inet_addr("127.0.0.1");                                              // local host
+    localAddrss.sin_addr.s_addr = inet_addr("0.0.0.0");                                                // local host
     localAddrss.sin_port = htons(service.at("port_number").as_integer());                              // user specified port number
     CHECK_SOCK_ERROR(bind(m_server, reinterpret_cast<sockaddr *>(&localAddrss), sizeof(localAddrss))); // bind socket to the local host
     CHECK_SOCK_ERROR(listen(m_server, SOMAXCONN));                                                     // listen to this socket
@@ -171,26 +171,34 @@ void Logger::Process()
                 {
                     // Refuse.
                     std::cout << std::format("Refuse {} {}, which is too noisy.", hostname, application) << std::endl;
+                #ifdef _WIN32
+                    closesocket(client);
+                #else
+                    close(client);
+                #endif
                     return;
                 }
             }
 
             Log(priority, timestamp.c_str(), hostname.c_str(), application.c_str(), pid, msgid.c_str(), message.c_str());
         }
-        catch(const json::exception& e)
+        catch(const json::type_error& e)
         {
+            std::cerr << "Not a valid log type." << std::endl;
             std::cerr << e.what() << std::endl;
         }
-        // catch(const json::type_error& e)
-        // {
-        //     std::cerr << "Not a valid log format." << std::endl;
-        //     std::cerr << e.what() << std::endl;
-        // }
-        // catch(const json::parse_error& e)
-        // {
-        //     std::cerr << "Not a valid log format." << std::endl;
-        //     std::cerr << e.what() << std::endl;
-        // }
+        catch(const json::parse_error& e)
+        {
+            std::cerr << "Not a valid log format." << std::endl;
+            std::cerr << e.what() << std::endl;
+        }
+
+    #ifdef _WIN32
+        closesocket(client);
+    #else
+        close(client);
+    #endif
+        return;
     }
 }
 
