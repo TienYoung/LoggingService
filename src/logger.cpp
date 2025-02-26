@@ -115,6 +115,8 @@ void Logger::Process()
     }
     else
     {
+        std::cout << "Recieved: \n" << m_receiveBuffer.data() << std::endl;
+
         int priority = 0;
         std::string timestamp = std::format("{0:%F}T{0:%TZ}", std::chrono::system_clock::now());
         std::string hostname = "unknown";
@@ -150,6 +152,10 @@ void Logger::Process()
             {
                 msgid = data["msgid"];
             }
+            if(m_supportMessage == true)
+            {
+                message = data["message"];
+            }
 
             auto currentTimePoint = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
             auto it = m_lastConnectionTime.find(hostname + application);
@@ -171,10 +177,20 @@ void Logger::Process()
 
             Log(priority, timestamp.c_str(), hostname.c_str(), application.c_str(), pid, msgid.c_str(), message.c_str());
         }
-        catch(const json::type_error& e)
+        catch(const json::exception& e)
         {
             std::cerr << e.what() << std::endl;
         }
+        // catch(const json::type_error& e)
+        // {
+        //     std::cerr << "Not a valid log format." << std::endl;
+        //     std::cerr << e.what() << std::endl;
+        // }
+        // catch(const json::parse_error& e)
+        // {
+        //     std::cerr << "Not a valid log format." << std::endl;
+        //     std::cerr << e.what() << std::endl;
+        // }
     }
 }
 
