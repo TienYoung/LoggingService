@@ -82,7 +82,7 @@ Logger::Logger(const toml::value& service, const toml::value& format)
 
     sockaddr_in localAddrss = {0};
     localAddrss.sin_family = AF_INET;                                                                  // ipv4
-    localAddrss.sin_addr.s_addr = inet_addr("0.0.0.0");                                                // local host
+    localAddrss.sin_addr.s_addr = htonl(INADDR_ANY);                                                // local host
     localAddrss.sin_port = htons(service.at("port_number").as_integer());                              // user specified port number
     CHECK_SOCK_ERROR(bind(m_server, reinterpret_cast<sockaddr *>(&localAddrss), sizeof(localAddrss))); // bind socket to the local host
     CHECK_SOCK_ERROR(listen(m_server, SOMAXCONN));                                                     // listen to this socket
