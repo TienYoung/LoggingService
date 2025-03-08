@@ -15,6 +15,6 @@ endif()
 
 add_custom_command(TARGET LoggingService POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/config.toml
+    ${CMAKE_SOURCE_DIR}/../config.toml
     $<TARGET_FILE_DIR:LoggingService>/config.toml
 )
