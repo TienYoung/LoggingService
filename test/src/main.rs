@@ -1,26 +1,48 @@
-use std::env;
-use std::fs;
-use toml::Table;
+use std::net;
+use std::process;
+use std::io::prelude::*;
+use serde::Serialize;
+use clap::{CommandFactory, Parser};
+use chrono::Utc;
+use gethostname::gethostname;
+use uuid::Uuid;
+
+#[derive(Parser)]
+struct Args {
+    #[arg(long)]
+    host: String,
+    #[arg(long)]
+    port: u16,
+}
+
+#[derive(Serialize)]
+struct Log {
+    priority: i32,
+    timestamp: String,
+    hostname: String,
+    application: String,
+    pid: u32,
+    msgid: String,
+    message: String,
+}
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
 
-    let config: Table = fs::read_to_string("./config.toml")
-        .expect(&format!("ERROR: Could not read config.toml in {}", std::env::current_dir().unwrap().display()))
-        .parse::<Table>()
-        .expect("ERROR: Could not parse config.toml");
+    let host = args.host;
+    let port= args.port;
 
-    let port = config["Service"]["port_number"].as_integer().unwrap();
-    let filename = config["Service"]["log_file"].as_str().unwrap().to_string();
-    let rate_limit = config["Service"]["rate_limit"].as_integer().unwrap();
+    let mut stream = net::TcpStream::connect((host, port)).unwrap();
+    
+    let log = Log {
+        priority: 1,
+        timestamp: Utc::now().to_rfc3339().to_string(),
+        hostname: gethostname().to_string_lossy().to_string(),
+        application: Args::command().get_name().to_string(),
+        pid: process::id(),
+        msgid: Uuid::new_v4().to_string(),
+        message: "Hello, this is Rust!".to_string(),
+    };
 
-    for arg in args.iter() {
-        match arg.as_str() {
-            "-p" => println!("Port number: {}", port),
-            "-l" => println!("Log file: {}", filename),
-            "-r" => println!("Rate limit: {}", rate_limit),
-            _ => println!("Unknown argument: {}", arg),
-            
-        }
-    }
+    stream.write(serde_json::to_string(&log).unwrap().as_bytes()).unwrap();
 }
